@@ -28,7 +28,8 @@
       "Bash(gh auth:*)",
       "Bash(gh repo view:*)",
       "Bash(find:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }
