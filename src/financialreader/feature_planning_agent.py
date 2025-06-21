@@ -198,6 +198,7 @@ Respond in valid JSON format with the structure:
 {{
   "transformation_features": [{{
     "feature_name": "string",
+    "feature_type": "transformation",
     "description": "string", 
     "implementation": "string",
     "priority": number,
@@ -249,84 +250,73 @@ Focus on features that would be valuable for {analysis_goals} with this financia
                 {
                     "feature_name": "asset_efficiency_percentile",
                     "feature_type": "transformation",
-                    "description": "Industry percentile ranking of asset turnover ratio",
-                    "implementation": "Rank asset turnover within industry peer group",
+                    "description": "Asset turnover ranked against historical performance to normalize for scale",
+                    "implementation": "Calculate asset_turnover.rank(pct=True)",
                     "priority": 3,
                     "complexity": "medium",
-                    "expected_value": "Useful for relative performance assessment",
-                    "data_requirements": ["asset_turnover", "industry_classification"]
+                    "expected_value": "Indicates how efficiently a company uses its assets compared to its own history",
+                    "data_requirements": ["asset_turnover_ratio"]
                 }
             ],
             "interaction_features": [
                 {
-                    "feature_name": "growth_quality_score",
-                    "feature_type": "interaction",
-                    "description": "Revenue growth rate multiplied by cash conversion ratio",
-                    "implementation": "revenue_growth_yoy * cash_conversion_ratio",
-                    "priority": 5,
-                    "complexity": "low",
-                    "expected_value": "Distinguishes sustainable vs unsustainable growth",
-                    "data_requirements": ["revenue_growth_yoy", "cash_conversion_ratio"]
-                },
-                {
                     "feature_name": "leverage_profitability_ratio",
                     "feature_type": "interaction",
-                    "description": "Interaction between debt levels and return on equity",
-                    "implementation": "debt_to_equity * roe",
+                    "description": "Interaction between financial leverage and return on equity",
+                    "implementation": "financial_leverage * roe",
                     "priority": 4,
                     "complexity": "low",
-                    "expected_value": "Captures leverage amplification effects on returns",
-                    "data_requirements": ["debt_to_equity", "roe"]
+                    "expected_value": "Measures the impact of leverage on profitability",
+                    "data_requirements": ["financial_leverage", "roe"]
+                },
+                {
+                    "feature_name": "growth_quality_score",
+                    "feature_type": "interaction",
+                    "description": "Combines revenue growth with operating cash flow to assess growth sustainability",
+                    "implementation": "revenue_growth * (operating_cash_flow / revenue)",
+                    "priority": 5,
+                    "complexity": "medium",
+                    "expected_value": "High score indicates that growth is backed by strong cash flow",
+                    "data_requirements": ["revenue_growth_yoy", "operating_cash_flow", "revenue"]
                 }
             ],
             "temporal_features": [
                 {
-                    "feature_name": "revenue_3y_avg",
+                    "feature_name": "net_income_lag_1y",
                     "feature_type": "temporal",
-                    "description": "3-year rolling average revenue for trend smoothing",
-                    "implementation": "Calculate rolling mean of revenue over 3-year windows",
+                    "description": "Net income from the previous year to capture historical performance",
+                    "implementation": "net_income.shift(1)",
                     "priority": 3,
                     "complexity": "low",
-                    "expected_value": "Reduces noise in revenue trend analysis",
-                    "data_requirements": ["revenue", "fiscal_year"]
-                },
-                {
-                    "feature_name": "margin_lagged_1y",
-                    "feature_type": "temporal",
-                    "description": "Previous year operating margin for trend analysis",
-                    "implementation": "Shift operating_margin by 1 year",
-                    "priority": 4,
-                    "complexity": "low", 
-                    "expected_value": "Helps capture margin persistence patterns",
-                    "data_requirements": ["operating_margin", "fiscal_year"]
+                    "expected_value": "Baseline for predicting next year's income",
+                    "data_requirements": ["net_income", "fiscal_year"]
                 }
             ],
             "narrative_features": [
-                {
-                    "feature_name": "risk_sentiment_score",
+                 {
+                    "feature_name": "risk_factor_intensity",
                     "feature_type": "narrative",
-                    "description": "Sentiment analysis of risk factor section language",
-                    "implementation": "NLP sentiment scoring of risk factors text",
-                    "priority": 3,
+                    "description": "Count of keywords related to major risks (e.g., 'competition', 'regulatory')",
+                    "implementation": "Keyword search in Item 1A text",
+                    "priority": 2,
                     "complexity": "high",
-                    "expected_value": "May predict management outlook and risk perception",
-                    "data_requirements": ["risk_factors_text"]
-                }
+                    "expected_value": "Quantifies the level of disclosed risk",
+                    "data_requirements": ["narrative_item1a_content"]
+                 }
             ],
             "quality_recommendations": [
-                "Implement outlier detection for extreme ratio values",
-                "Add data validation for logical constraints (e.g., positive revenue)",
-                "Create completeness scoring by metric and time period"
+                "Address missing values in 'operating_cash_flow' using interpolation",
+                "Review outliers in 'capex_to_revenue_ratio' for potential data entry errors"
             ],
             "implementation_priority": [
-                "Start with transformation features (lowest complexity)",
-                "Implement interaction features for growth/quality metrics",
-                "Add temporal features for trend analysis",
-                "Consider narrative features if text data is clean"
+                "margin_momentum",
+                "growth_quality_score",
+                "revenue_volatility_3y",
+                "leverage_profitability_ratio"
             ]
         }
         
-        return json.dumps(mock_response, indent=2)
+        return json.dumps(mock_response)
     
     def _parse_ai_recommendations(self, ai_response: str, dataset_summary: Dict[str, Any]) -> FeaturePlan:
         """Parse AI response into structured FeaturePlan"""
@@ -341,21 +331,31 @@ Focus on features that would be valuable for {analysis_goals} with this financia
             
             recommendations = json.loads(clean_response)
             
-            # Convert to FeatureRecommendation objects
+            # Helper function to add the feature_type to each recommendation dict
+            def add_feature_type(rec_list, f_type):
+                for rec in rec_list:
+                    rec['feature_type'] = f_type
+                return rec_list
+
+            # Convert to FeatureRecommendation objects, ensuring feature_type is present
             transformation_features = [
-                FeatureRecommendation(**rec) for rec in recommendations.get('transformation_features', [])
+                FeatureRecommendation(**rec) for rec in add_feature_type(
+                    recommendations.get('transformation_features', []), 'transformation')
             ]
             
             interaction_features = [
-                FeatureRecommendation(**rec) for rec in recommendations.get('interaction_features', [])
+                FeatureRecommendation(**rec) for rec in add_feature_type(
+                    recommendations.get('interaction_features', []), 'interaction')
             ]
             
             temporal_features = [
-                FeatureRecommendation(**rec) for rec in recommendations.get('temporal_features', [])
+                FeatureRecommendation(**rec) for rec in add_feature_type(
+                    recommendations.get('temporal_features', []), 'temporal')
             ]
             
             narrative_features = [
-                FeatureRecommendation(**rec) for rec in recommendations.get('narrative_features', [])
+                FeatureRecommendation(**rec) for rec in add_feature_type(
+                    recommendations.get('narrative_features', []), 'narrative')
             ]
             
             return FeaturePlan(

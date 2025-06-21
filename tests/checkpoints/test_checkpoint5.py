@@ -2,6 +2,7 @@
 """
 Test Checkpoint 5: Feature Engineering and Data Pipeline
 """
+import pandas as pd
 
 import sys
 import os
@@ -53,6 +54,12 @@ def test_checkpoint5():
     performance_metrics = analytics_engine.calculate_performance_metrics(financial_df)
     performance_df = analytics_engine.to_dataframe(performance_metrics)
     print(f"   Performance data: {performance_df.shape}")
+    
+    output_excel_path = "apple_financial_and_performance_data.xlsx"
+    with pd.ExcelWriter(output_excel_path, engine="openpyxl") as writer:
+        financial_df.to_excel(writer, sheet_name="Financial Data", index=False)
+        performance_df.to_excel(writer, sheet_name="Performance Data", index=False)
+        print(f"   ✅ Exported financial and performance data to: {output_excel_path}")
     
     if financial_df.empty or performance_df.empty:
         print("   ERROR: No base data available")

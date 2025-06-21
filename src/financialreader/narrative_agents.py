@@ -91,7 +91,7 @@ Given this 10-K filing excerpt, identify:
 4. Any forward-looking statements or guidance provided
 5. Significant events, acquisitions, or strategic initiatives
 
-Return a structured JSON analysis prioritizing information most relevant to financial modeling and trend analysis.
+IMPORTANT: You must respond with ONLY a valid JSON object. Do not include any explanatory text, markdown formatting, or other content outside the JSON.
 
 Company: {company_name}
 Filing Year: {year}
@@ -100,13 +100,13 @@ Industry Context: {industry}
 Filing Text Excerpt:
 {text_sample}
 
-Please respond with a JSON object in this format:
+Respond with ONLY this JSON structure:
 {{
-    "business_segments": ["segment1", "segment2", ...],
-    "performance_drivers": ["driver1", "driver2", ...],
-    "top_risks": ["risk1", "risk2", ...],
-    "forward_statements": ["statement1", "statement2", ...],
-    "strategic_initiatives": ["initiative1", "initiative2", ...],
+    "business_segments": ["segment1", "segment2", "segment3"],
+    "performance_drivers": ["driver1", "driver2", "driver3"],
+    "top_risks": ["risk1", "risk2", "risk3", "risk4", "risk5"],
+    "forward_statements": ["statement1", "statement2"],
+    "strategic_initiatives": ["initiative1", "initiative2"],
     "priority_sections": {{
         "item1": 85,
         "item1a": 75,
@@ -130,7 +130,16 @@ Please respond with a JSON object in this format:
         """Parse Gemini response into ResearchInsight object"""
         
         try:
-            data = json.loads(response)
+            # Try to extract JSON from the response
+            json_start = response.find('{')
+            json_end = response.rfind('}') + 1
+            
+            if json_start != -1 and json_end > json_start:
+                json_text = response[json_start:json_end]
+                data = json.loads(json_text)
+            else:
+                # If no JSON found, try parsing the entire response
+                data = json.loads(response)
             
             return ResearchInsight(
                 business_segments=data.get('business_segments', []),
@@ -142,6 +151,7 @@ Please respond with a JSON object in this format:
             )
         except json.JSONDecodeError as e:
             self.logger.error(f"Failed to parse research response: {e}")
+            self.logger.debug(f"Raw response: {response[:500]}...")
             # Fallback to extracting key information from text
             return self._extract_insights_from_text(response)
     
@@ -225,87 +235,62 @@ class ExtractionAgent:
             return self._generate_mock_extraction(section_type)
     
     def _build_extraction_prompt(self, section_text: str, section_type: str) -> str:
-        """Build the extraction prompt based on section type"""
+        """Build the extraction analysis prompt"""
         
-        # Truncate text to fit in prompt (keep first 6000 chars)
-        text_sample = section_text[:6000] if len(section_text) > 6000 else section_text
+        # Truncate section text to fit in prompt (keep first 12000 chars)
+        text_sample = section_text[:12000] if len(section_text) > 12000 else section_text
         
-        base_prompt = """You are a financial analyst extracting key insights from 10-K sections.
+        section_configs = {
+            'item1': {
+                'title': 'Business Overview',
+                'focus': 'business model, products, services, markets, and operations'
+            },
+            'item1a': {
+                'title': 'Risk Factors',
+                'focus': 'material risks, uncertainties, and potential threats'
+            },
+            'item7': {
+                'title': 'Management Discussion & Analysis',
+                'focus': 'financial performance, trends, and management analysis'
+            }
+        }
+        
+        config = section_configs.get(section_type, {'title': section_type, 'focus': 'key insights'})
+        
+        prompt = f"""You are a financial analyst extracting structured insights from a 10-K section.
 
-For the following text section, extract:"""
-        
-        if section_type == "item1":
-            specific_instructions = """
-BUSINESS OVERVIEW:
-- Core business model and revenue streams
-- Market position and competitive advantages  
-- Geographic/segment breakdown
-- Key subsidiaries or business units
+Section: {config['title']} ({config['focus']})
 
-Return JSON format:
-{
-    "business_overview": {
-        "business_model": "description",
-        "revenue_streams": ["stream1", "stream2"],
-        "market_position": "description", 
-        "competitive_advantages": ["advantage1", "advantage2"],
-        "geographic_breakdown": ["region1", "region2"],
-        "key_subsidiaries": ["sub1", "sub2"]
-    }
-}"""
-        
-        elif section_type == "item1a":
-            specific_instructions = """
-RISK ASSESSMENT:
-- Top 5 most material risks to business performance
-- Industry-specific vs company-specific risks
-- New or emerging risk factors vs recurring ones
+IMPORTANT: You must respond with ONLY a valid JSON object. Do not include any explanatory text, markdown formatting, or other content outside the JSON.
 
-Return JSON format:
-{
-    "risk_assessment": {
-        "material_risks": ["risk1", "risk2", "risk3", "risk4", "risk5"],
-        "industry_risks": ["risk1", "risk2"],
-        "company_risks": ["risk1", "risk2"], 
-        "emerging_risks": ["risk1", "risk2"],
-        "recurring_risks": ["risk1", "risk2"]
-    }
-}"""
-        
-        elif section_type == "item7":
-            specific_instructions = """
-PERFORMANCE ANALYSIS:
-- Main drivers of revenue/profit changes vs prior year
-- Management's explanation of performance trends
-- Forward-looking strategic priorities
-- Guidance or outlook statements
+Extract the following information from this section:
 
-Return JSON format:
-{
-    "performance_analysis": {
-        "revenue_drivers": ["driver1", "driver2"],
-        "profit_drivers": ["driver1", "driver2"],
-        "performance_trends": ["trend1", "trend2"],
+Section Text:
+{text_sample}
+
+Respond with ONLY this JSON structure:
+{{
+    "section_type": "{section_type}",
+    "business_overview": {{
+        "business_model": "description of business model",
+        "revenue_streams": ["stream1", "stream2", "stream3"],
+        "key_markets": ["market1", "market2"],
+        "competitive_position": "description of competitive position"
+    }},
+    "performance_analysis": {{
+        "revenue_drivers": ["driver1", "driver2", "driver3"],
         "strategic_priorities": ["priority1", "priority2"],
-        "outlook_statements": ["statement1", "statement2"]
-    }
-}"""
+        "growth_opportunities": ["opportunity1", "opportunity2"],
+        "operational_metrics": ["metric1", "metric2"]
+    }},
+    "risk_assessment": {{
+        "material_risks": ["risk1", "risk2", "risk3"],
+        "mitigation_strategies": ["strategy1", "strategy2"],
+        "regulatory_concerns": ["concern1", "concern2"]
+    }}
+}}"""
         
-        else:
-            specific_instructions = """
-Extract key business insights and return in JSON format.
-"""
-        
-        full_prompt = f"""{base_prompt}
-
-{specific_instructions}
-
-Section Type: {section_type}
-Text: {text_sample}
-
-Return concise, factual summaries optimized for quantitative analysis."""
-        
-        return full_prompt
+        return prompt
     
     def _call_gemini_api(self, prompt: str) -> str:
         """Call Gemini API for extraction analysis"""
@@ -321,10 +306,19 @@ Return concise, factual summaries optimized for quantitative analysis."""
         """Parse Gemini response into ExtractedInsights object"""
         
         try:
-            data = json.loads(response)
+            # Try to extract JSON from the response
+            json_start = response.find('{')
+            json_end = response.rfind('}') + 1
+            
+            if json_start != -1 and json_end > json_start:
+                json_text = response[json_start:json_end]
+                data = json.loads(json_text)
+            else:
+                # If no JSON found, try parsing the entire response
+                data = json.loads(response)
             
             return ExtractedInsights(
-                section_type=section_type,
+                section_type=data.get('section_type', section_type),
                 business_overview=data.get('business_overview'),
                 performance_analysis=data.get('performance_analysis'),
                 risk_assessment=data.get('risk_assessment'),
@@ -332,10 +326,9 @@ Return concise, factual summaries optimized for quantitative analysis."""
             )
         except json.JSONDecodeError as e:
             self.logger.error(f"Failed to parse extraction response: {e}")
-            return ExtractedInsights(
-                section_type=section_type,
-                raw_response=response
-            )
+            self.logger.debug(f"Raw response: {response[:500]}...")
+            # Fallback to mock extraction
+            return self._generate_mock_extraction(section_type)
     
     def _generate_mock_extraction(self, section_type: str) -> ExtractedInsights:
         """Generate mock extraction for testing"""

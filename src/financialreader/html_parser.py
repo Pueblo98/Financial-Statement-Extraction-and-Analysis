@@ -1,6 +1,6 @@
 """
-HTML Section Parser for 10-K Filings
-Extracts specific sections from SEC 10-K HTML filings
+AI-Driven HTML Section Parser for 10-K Filings
+Uses Gemini AI to extract specific sections from SEC 10-K filings
 """
 
 from typing import Dict, List, Optional, Tuple
@@ -8,6 +8,15 @@ import re
 from dataclasses import dataclass
 from bs4 import BeautifulSoup, Tag, NavigableString
 import logging
+import os
+import json
+
+try:
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+    genai = None
 
 @dataclass
 class FilingSection:
@@ -19,49 +28,47 @@ class FilingSection:
     start_position: Optional[int] = None
     end_position: Optional[int] = None
 
-class HTMLSectionParser:
+class AIHTMLSectionParser:
     """
-    Parses HTML 10-K filings to extract key sections
-    Handles variations in formatting across companies
+    AI-powered parser that uses Gemini to extract key sections from 10-K filings
+    Bypasses complex HTML parsing by having AI read and extract content directly
     """
     
-    def __init__(self):
+    def __init__(self, api_key: Optional[str] = None):
         self.logger = logging.getLogger(__name__)
+        
+        # Initialize Gemini
+        self.model = None
+        if api_key and GEMINI_AVAILABLE:
+            try:
+                genai.configure(api_key=api_key)
+                self.model = genai.GenerativeModel('gemini-2.0-flash')
+                self.logger.info("AI HTML Parser initialized with Gemini")
+            except Exception as e:
+                self.logger.error(f"Failed to initialize Gemini: {e}")
+                self.model = None
+        else:
+            self.logger.warning("No Gemini API key or library available - using fallback parsing")
         
         # Target sections we want to extract
         self.target_sections = {
             'item1': {
-                'patterns': [
-                    r'part\s*i\s*item\s*1\.\s*business',
-                    r'item\s*1\.\s*business',
-                    r'item\s*1\s*business'
-                ],
                 'title': 'Business Overview',
-                'keywords': ['business', 'overview', 'description', 'company', 'products']
+                'description': 'Company business description, products, services, and operations'
             },
             'item1a': {
-                'patterns': [
-                    r'item\s*1a\.\s*risk\s*factors',
-                    r'item\s*1a\s*risk\s*factors',
-                    r'part\s*i\s*item\s*1a'
-                ],
-                'title': 'Risk Factors',
-                'keywords': ['risk', 'factors', 'uncertainties', 'competition']
+                'title': 'Risk Factors', 
+                'description': 'Material risks and uncertainties facing the company'
             },
             'item7': {
-                'patterns': [
-                    r'item\s*7\.\s*management',
-                    r"management's\s*discussion\s*and\s*analysis",
-                    r'part\s*ii\s*item\s*7'
-                ],
                 'title': 'Management Discussion & Analysis',
-                'keywords': ['management', 'discussion', 'analysis', 'results', 'operations']
+                'description': 'Management analysis of financial condition and results of operations'
             }
         }
     
     def parse_filing(self, html_content: str) -> Dict[str, FilingSection]:
         """
-        Parse a 10-K HTML filing and extract key sections
+        Parse a 10-K HTML filing and extract key sections using AI
         
         Args:
             html_content: Raw HTML content of 10-K filing
@@ -69,9 +76,9 @@ class HTMLSectionParser:
         Returns:
             Dictionary mapping section IDs to FilingSection objects
         """
-        self.logger.info("Parsing 10-K HTML filing")
+        self.logger.info("Parsing 10-K HTML filing with AI")
         
-        # Clean and parse HTML
+        # Clean and extract text from HTML
         soup = BeautifulSoup(html_content, 'html.parser')
         
         # Remove XBRL metadata and script tags
@@ -81,202 +88,117 @@ class HTMLSectionParser:
         # Get clean text content
         clean_text = soup.get_text()
         
-        # Extract sections
-        sections = {}
-        for section_id, config in self.target_sections.items():
-            section = self._extract_section(clean_text, section_id, config)
-            if section:
-                sections[section_id] = section
+        if self.model:
+            # Use AI to extract sections
+            return self._extract_sections_with_ai(clean_text)
+        else:
+            # Fallback to basic text parsing
+            return self._extract_sections_fallback(clean_text)
+    
+    def _extract_sections_with_ai(self, text: str) -> Dict[str, FilingSection]:
+        """Extract sections using Gemini AI"""
         
-        self.logger.info(f"Extracted {len(sections)} sections from filing")
+        sections = {}
+        
+        for section_id, config in self.target_sections.items():
+            try:
+                section_content = self._extract_single_section_with_ai(text, section_id, config)
+                if section_content and len(section_content.split()) >= 50:
+                    sections[section_id] = FilingSection(
+                        section_id=section_id,
+                        title=config['title'],
+                        content=section_content,
+                        word_count=len(section_content.split())
+                    )
+                    self.logger.info(f"AI extracted {section_id}: {len(section_content.split())} words")
+                else:
+                    self.logger.warning(f"AI could not extract meaningful content for {section_id}")
+            except Exception as e:
+                self.logger.error(f"AI extraction failed for {section_id}: {e}")
+        
+        self.logger.info(f"AI extracted {len(sections)} sections from filing")
         return sections
     
-    def _extract_section(self, text: str, section_id: str, config: Dict) -> Optional[FilingSection]:
-        """Extract a specific section from the filing text"""
+    def _extract_single_section_with_ai(self, text: str, section_id: str, config: Dict) -> Optional[str]:
+        """Extract a single section using AI"""
         
-        # Find section start
-        start_pos = self._find_section_start(text, config['patterns'])
-        if start_pos == -1:
-            self.logger.warning(f"Could not find start of section {section_id}")
+        # Truncate text to fit in prompt (keep first 15000 chars)
+        text_sample = text[:15000] if len(text) > 15000 else text
+        
+        prompt = f"""You are an expert at analyzing SEC 10-K filings. Extract the content for {config['title']} from this filing text.
+
+Section: {config['title']} ({config['description']})
+
+Instructions:
+1. Find the relevant section in the text
+2. Extract the complete content for this section
+3. Return ONLY the extracted text, no explanations or formatting
+4. If you cannot find this section, return "NOT_FOUND"
+
+Filing text:
+{text_sample}
+
+Extracted content:"""
+
+        try:
+            response = self.model.generate_content(prompt)
+            content = response.text.strip()
+            
+            # Check if AI found the section
+            if content.lower() in ['not found', 'not_found', '']:
+                return None
+            
+            return content
+            
+        except Exception as e:
+            self.logger.error(f"AI call failed for {section_id}: {e}")
             return None
-        
-        # Find section end
-        end_pos = self._find_section_end(text, start_pos, section_id)
-        
-        # Extract content
-        section_text = text[start_pos:end_pos].strip()
-        
-        # Clean up the content
-        cleaned_content = self._clean_section_content(section_text)
-        
-        # Validate minimum content length
-        if len(cleaned_content.split()) < 50:  # At least 50 words
-            self.logger.warning(f"Section {section_id} too short ({len(cleaned_content.split())} words)")
-            return None
-        
-        return FilingSection(
-            section_id=section_id,
-            title=config['title'],
-            content=cleaned_content,
-            word_count=len(cleaned_content.split()),
-            start_position=start_pos,
-            end_position=end_pos
-        )
     
-    def _find_section_start(self, text: str, patterns: List[str]) -> int:
-        """Find the start position of a section using multiple patterns"""
+    def _extract_sections_fallback(self, text: str) -> Dict[str, FilingSection]:
+        """Fallback method using basic text parsing when AI is unavailable"""
         
-        text_lower = text.lower()
-        best_match = -1
+        sections = {}
         
-        for pattern in patterns:
-            # Search for pattern (case insensitive)
-            matches = list(re.finditer(pattern, text_lower, re.IGNORECASE))
-            
-            for match in matches:
-                pos = match.start()
-                
-                # Look for section header context (within 200 characters)
-                context_start = max(0, pos - 100)
-                context_end = min(len(text), pos + 200)
-                context = text[context_start:context_end].lower()
-                
-                # Check if this looks like a section header
-                if self._is_section_header(context, pos - context_start):
-                    # Find the end of the header line to start content extraction
-                    header_end = text.find('\n', pos)
-                    if header_end == -1:
-                        header_end = pos + 100  # fallback
-                    
-                    # Look for actual content start (skip table of contents style entries)
-                    content_start = self._find_content_start(text, header_end)
-                    
-                    if best_match == -1 or content_start < best_match:
-                        best_match = content_start
+        # Simple keyword-based extraction
+        section_patterns = {
+            'item1': [
+                r'item\s*1[\.\s]*business.*?(?=item\s*1a|item\s*2|$)',
+                r'business\s*overview.*?(?=risk\s*factors|item\s*2|$)',
+            ],
+            'item1a': [
+                r'item\s*1a[\.\s]*risk\s*factors.*?(?=item\s*2|$)',
+                r'risk\s*factors.*?(?=item\s*2|$)',
+            ],
+            'item7': [
+                r'item\s*7[\.\s]*management.*?(?=item\s*8|$)',
+                r"management's\s*discussion\s*and\s*analysis.*?(?=item\s*8|$)",
+            ]
+        }
         
-        return best_match
-    
-    def _is_section_header(self, context: str, match_pos: int) -> bool:
-        """Check if a match appears to be a section header"""
+        for section_id, patterns in section_patterns.items():
+            for pattern in patterns:
+                match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+                if match:
+                    content = match.group(0).strip()
+                    if len(content.split()) >= 50:
+                        sections[section_id] = FilingSection(
+                            section_id=section_id,
+                            title=self.target_sections[section_id]['title'],
+                            content=content,
+                            word_count=len(content.split())
+                        )
+                        break
         
-        # Look for indicators this is a section header
-        header_indicators = [
-            'part i',
-            'part ii', 
-            'table of contents',
-            'item',
-            '\n\n',  # paragraph break before
-            'page',
-            'form 10-k'
-        ]
-        
-        # Check context around the match
-        context_before = context[:match_pos].lower()
-        context_after = context[match_pos:].lower()
-        
-        # Should have line breaks or clear separation
-        has_separation = (
-            '\n' in context_before[-20:] or 
-            '\n' in context_after[:20:] or
-            any(indicator in context for indicator in header_indicators)
-        )
-        
-        return has_separation
-    
-    def _find_content_start(self, text: str, header_end: int) -> int:
-        """Find where the actual section content starts after the header"""
-        
-        # Look for first substantial paragraph after header
-        search_text = text[header_end:header_end + 2000]  # Search next 2000 chars
-        
-        # Split into potential paragraphs
-        paragraphs = re.split(r'\n\s*\n', search_text)
-        
-        for i, paragraph in enumerate(paragraphs):
-            # Skip short lines, numbers, table entries
-            cleaned = paragraph.strip()
-            if (len(cleaned.split()) >= 10 and  # At least 10 words
-                not re.match(r'^\d+$', cleaned) and  # Not just numbers
-                not re.match(r'^page\s*\d+', cleaned.lower()) and
-                'item' not in cleaned.lower()[:50]):  # Not another item header
-                
-                # Found content start
-                content_pos = header_end + search_text.find(paragraph)
-                return content_pos
-        
-        # Fallback to right after header
-        return header_end
-    
-    def _find_section_end(self, text: str, start_pos: int, current_section: str) -> int:
-        """Find where the current section ends"""
-        
-        text_lower = text.lower()
-        
-        # Look for next major section
-        next_section_patterns = [
-            r'item\s*\d+[a-z]?\b',
-            r'part\s*[i]+',
-            r'signatures',
-            r'exhibits'
-        ]
-        
-        # Start searching after current section header
-        search_start = start_pos + 500  # Skip at least 500 chars to avoid header
-        
-        best_end = len(text)  # Default to end of document
-        
-        for pattern in next_section_patterns:
-            matches = list(re.finditer(pattern, text_lower[search_start:], re.IGNORECASE))
-            
-            for match in matches:
-                absolute_pos = search_start + match.start()
-                
-                # Check if this looks like a real section break
-                context_start = max(0, absolute_pos - 100)
-                context_end = min(len(text), absolute_pos + 100)
-                context = text[context_start:context_end].lower()
-                
-                if self._is_section_header(context, absolute_pos - context_start):
-                    if absolute_pos < best_end:
-                        best_end = absolute_pos
-        
-        return best_end
-    
-    def _clean_section_content(self, content: str) -> str:
-        """Clean and normalize section content"""
-        
-        # Remove excessive whitespace
-        content = re.sub(r'\s+', ' ', content)
-        
-        # Remove page numbers and headers/footers
-        lines = content.split('\n')
-        cleaned_lines = []
-        
-        for line in lines:
-            line = line.strip()
-            
-            # Skip likely headers/footers/page numbers
-            if (len(line) < 5 or 
-                re.match(r'^\d+$', line) or  # Just a number
-                re.match(r'^page\s*\d+', line.lower()) or
-                'table of contents' in line.lower()):
-                continue
-                
-            cleaned_lines.append(line)
-        
-        # Rejoin and clean up
-        cleaned = ' '.join(cleaned_lines)
-        cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-        
-        return cleaned
+        self.logger.info(f"Fallback extracted {len(sections)} sections from filing")
+        return sections
     
     def get_section_summary(self, sections: Dict[str, FilingSection]) -> Dict[str, any]:
-        """Generate a summary of extracted sections"""
+        """Generate summary of extracted sections"""
         
         summary = {
-            'sections_found': list(sections.keys()),
             'total_sections': len(sections),
-            'total_word_count': sum(section.word_count for section in sections.values()),
+            'sections_found': list(sections.keys()),
+            'total_words': sum(section.word_count for section in sections.values()),
             'section_details': {}
         }
         
@@ -284,16 +206,17 @@ class HTMLSectionParser:
             summary['section_details'][section_id] = {
                 'title': section.title,
                 'word_count': section.word_count,
-                'content_preview': section.content[:200] + '...' if len(section.content) > 200 else section.content
+                'content_preview': section.content[:200] + "..." if len(section.content) > 200 else section.content
             }
         
         return summary
 
 
+# Backward compatibility - use the new AI parser
+HTMLSectionParser = AIHTMLSectionParser
+
 if __name__ == "__main__":
     # Example usage
-    import os
-    
     parser = HTMLSectionParser()
     
     # Test with Apple 2024 filing

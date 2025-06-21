@@ -440,6 +440,36 @@ class FinancialDataAPI:
         self.app.run(host=self.host, port=self.port, debug=debug)
 
 
+def export_dataframes_to_excel(dataframes: Dict[str, pd.DataFrame], filename: str, export_directory: str = "exports"):
+    """
+    Exports multiple dataframes to a single Excel file with multiple sheets.
+
+    Args:
+        dataframes (Dict[str, pd.DataFrame]): A dictionary where keys are the sheet names
+                                             and values are the pandas DataFrames.
+        filename (str): The name of the output Excel file (without extension).
+        export_directory (str): The directory to save the file in.
+    """
+    logger = logging.getLogger(__name__)
+    export_dir = Path(export_directory)
+    export_dir.mkdir(exist_ok=True)
+    
+    file_path = export_dir / f"{filename}.xlsx"
+    
+    try:
+        with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+            for sheet_name, df in dataframes.items():
+                if isinstance(df, pd.DataFrame):
+                    df.to_excel(writer, sheet_name=sheet_name, index=False)
+                else:
+                    logger.warning(f"Item '{sheet_name}' is not a DataFrame, skipping.")
+        logger.info(f"Successfully exported dataframes to {file_path}")
+        return str(file_path)
+    except Exception as e:
+        logger.error(f"Failed to export to Excel: {e}")
+        return None
+
+
 if __name__ == "__main__":
     # Example usage and testing
     print("Testing Data Export Manager...")

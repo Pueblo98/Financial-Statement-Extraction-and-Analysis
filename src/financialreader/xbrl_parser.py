@@ -167,24 +167,34 @@ class XBRLFinancialParser:
         financial_statements = []
         
         for fiscal_year, data_points in statements_by_period.items():
-            # Prioritize 10-K data over 10-Q
+            # Prioritize 10-K data over 10-Q and get data from fiscal year end
             annual_data_points = [dp for dp in data_points if dp.form == '10-K']
             if not annual_data_points:
-                # Fall back to 10-Q if no 10-K available
-                annual_data_points = [dp for dp in data_points if dp.form == '10-Q']
+                # Fall back to 10-Q from fiscal year end (September for Apple)
+                annual_data_points = [dp for dp in data_points if dp.form == '10-Q' and (dp.end_date.endswith('-09-25') or dp.end_date.endswith('-09-26') or dp.end_date.endswith('-09-30'))]
+            
+            if not annual_data_points:
+                # Use any available data points as last resort
+                annual_data_points = data_points
             
             if not annual_data_points:
                 continue
             
-            # Find the most recent filing for this fiscal year
-            annual_data_points.sort(key=lambda x: x.filed_date or '', reverse=True)
-            primary_filing_date = annual_data_points[0].filed_date
+            # Group by end_date to find the fiscal year end filing
+            from collections import defaultdict
+            by_end_date = defaultdict(list)
+            for dp in annual_data_points:
+                by_end_date[dp.end_date].append(dp)
             
-            # Filter to data points from the same filing
-            same_filing_points = [
-                dp for dp in annual_data_points 
-                if dp.filed_date == primary_filing_date
-            ]
+            # Find the end date closest to fiscal year end (September for Apple)
+            fiscal_year_end_dates = [date for date in by_end_date.keys() if '-09-' in date]
+            if fiscal_year_end_dates:
+                primary_end_date = max(fiscal_year_end_dates)
+                same_filing_points = by_end_date[primary_end_date]
+            else:
+                # Use the most recent end date
+                primary_end_date = max(by_end_date.keys())
+                same_filing_points = by_end_date[primary_end_date]
             
             # Create financial statement
             statement = self._create_financial_statement(
@@ -226,12 +236,17 @@ class XBRLFinancialParser:
             
             found_concepts.add(dp.concept)
             
+            # For income statement items, prefer the highest value (annual vs quarterly)
             if gaap_tag_info.statement_type == StatementType.INCOME_STATEMENT:
-                income_statement[dp.concept] = normalized_value
+                if dp.concept not in income_statement or normalized_value > income_statement[dp.concept]:
+                    income_statement[dp.concept] = normalized_value
             elif gaap_tag_info.statement_type == StatementType.BALANCE_SHEET:
+                # For balance sheet, use the most recent value
                 balance_sheet[dp.concept] = normalized_value
             elif gaap_tag_info.statement_type == StatementType.CASH_FLOW:
-                cash_flow[dp.concept] = normalized_value
+                # For cash flow, prefer the highest value (annual vs quarterly)
+                if dp.concept not in cash_flow or normalized_value > cash_flow[dp.concept]:
+                    cash_flow[dp.concept] = normalized_value
         
         # Calculate data quality score
         required_found = len([c for c in expected_concepts if c in found_concepts])

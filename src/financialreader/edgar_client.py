@@ -182,12 +182,13 @@ class SECEdgarClient:
         self.logger.info(f"Found {len(ten_k_filings)} 10-K filings for CIK {cik}")
         return ten_k_filings
     
-    def download_filing(self, accession_number: str, primary_document: str, 
+    def download_filing(self, cik: str, accession_number: str, primary_document: str, 
                        save_path: str) -> str:
         """
         Download a specific filing document
         
         Args:
+            cik: Company CIK (required for URL construction)
             accession_number: SEC accession number
             primary_document: Primary document filename
             save_path: Local path to save the document
@@ -197,9 +198,10 @@ class SECEdgarClient:
         """
         # Format accession number for URL (remove dashes)
         accession_clean = accession_number.replace('-', '')
+        cik_formatted = str(cik).zfill(10)
         
         # Construct filing URL
-        filing_url = f"https://www.sec.gov/Archives/edgar/data/{accession_clean[:10]}/{accession_number}/{primary_document}"
+        filing_url = f"https://www.sec.gov/Archives/edgar/data/{cik_formatted}/{accession_clean}/{primary_document}"
         
         self._rate_limit_request()
         
