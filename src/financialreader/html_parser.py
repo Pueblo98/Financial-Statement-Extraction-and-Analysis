@@ -120,25 +120,81 @@ class AIHTMLSectionParser:
         return sections
     
     def _extract_single_section_with_ai(self, text: str, section_id: str, config: Dict) -> Optional[str]:
-        """Extract a single section using AI"""
+        """Extract a single section using AI with improved prompts"""
         
-        # Truncate text to fit in prompt (keep first 15000 chars)
-        text_sample = text[:15000] if len(text) > 15000 else text
+        # Increase text sample size and use different strategies for different sections
+        if section_id == 'item1a':  # Risk Factors - usually longer, need more text
+            text_sample = text[:25000] if len(text) > 25000 else text
+        elif section_id == 'item7':  # MD&A - also longer, need more text
+            text_sample = text[:25000] if len(text) > 25000 else text
+        else:  # item1 - Business Overview
+            text_sample = text[:20000] if len(text) > 20000 else text
         
-        prompt = f"""You are an expert at analyzing SEC 10-K filings. Extract the content for {config['title']} from this filing text.
+        # Create section-specific prompts
+        if section_id == 'item1a':
+            prompt = f"""You are an expert at analyzing SEC 10-K filings. Extract the "Risk Factors" section (Item 1A) from this filing text.
 
-Section: {config['title']} ({config['description']})
+IMPORTANT: Look for the section that discusses risks, uncertainties, and potential threats to the business. This section typically:
+- Lists material risks facing the company
+- Discusses regulatory, competitive, operational, and financial risks
+- May be titled "Risk Factors", "Item 1A", or similar
+- Usually appears after the business overview section
 
 Instructions:
-1. Find the relevant section in the text
-2. Extract the complete content for this section
-3. Return ONLY the extracted text, no explanations or formatting
-4. If you cannot find this section, return "NOT_FOUND"
+1. Find the Risk Factors section in the text
+2. Extract the COMPLETE content of this section
+3. Include all risk factors mentioned
+4. Return ONLY the extracted text, no explanations
+5. If you cannot find this section, return "NOT_FOUND"
 
-Filing text:
+Filing text (first 25,000 characters):
 {text_sample}
 
-Extracted content:"""
+Extracted Risk Factors content:"""
+
+        elif section_id == 'item7':
+            prompt = f"""You are an expert at analyzing SEC 10-K filings. Extract the "Management's Discussion and Analysis of Financial Condition and Results of Operations" section (Item 7) from this filing text.
+
+IMPORTANT: Look for the section where management discusses financial performance, trends, and outlook. This section typically:
+- Analyzes revenue, expenses, and profitability trends
+- Explains changes in financial performance
+- Discusses business drivers and challenges
+- May be titled "MD&A", "Management Discussion", "Item 7", or similar
+- Usually appears after the risk factors section
+
+Instructions:
+1. Find the Management Discussion and Analysis section in the text
+2. Extract the COMPLETE content of this section
+3. Include all financial analysis and management commentary
+4. Return ONLY the extracted text, no explanations
+5. If you cannot find this section, return "NOT_FOUND"
+
+Filing text (first 25,000 characters):
+{text_sample}
+
+Extracted MD&A content:"""
+
+        else:  # item1
+            prompt = f"""You are an expert at analyzing SEC 10-K filings. Extract the "Business Overview" section (Item 1) from this filing text.
+
+IMPORTANT: Look for the section that describes the company's business, products, services, and operations. This section typically:
+- Describes what the company does
+- Lists main products and services
+- Discusses business segments and markets
+- May be titled "Business", "Business Overview", "Item 1", or similar
+- Usually appears early in the filing
+
+Instructions:
+1. Find the Business Overview section in the text
+2. Extract the COMPLETE content of this section
+3. Include all business description and operations details
+4. Return ONLY the extracted text, no explanations
+5. If you cannot find this section, return "NOT_FOUND"
+
+Filing text (first 20,000 characters):
+{text_sample}
+
+Extracted Business Overview content:"""
 
         try:
             response = self.model.generate_content(prompt)
@@ -146,6 +202,23 @@ Extracted content:"""
             
             # Check if AI found the section
             if content.lower() in ['not found', 'not_found', '']:
+                self.logger.debug(f"AI returned NOT_FOUND for {section_id}")
+                return None
+            
+            # Additional validation - check if content seems meaningful
+            if len(content.split()) < 30:  # Too short to be meaningful
+                self.logger.debug(f"AI returned too short content for {section_id}: {len(content.split())} words")
+                return None
+            
+            # Check if content contains relevant keywords for the section
+            if section_id == 'item1a' and not any(word in content.lower() for word in ['risk', 'uncertainty', 'threat', 'challenge']):
+                self.logger.debug(f"AI content for {section_id} doesn't contain risk-related keywords")
+                return None
+            elif section_id == 'item7' and not any(word in content.lower() for word in ['revenue', 'income', 'financial', 'management', 'discussion']):
+                self.logger.debug(f"AI content for {section_id} doesn't contain financial discussion keywords")
+                return None
+            elif section_id == 'item1' and not any(word in content.lower() for word in ['business', 'company', 'product', 'service', 'operation']):
+                self.logger.debug(f"AI content for {section_id} doesn't contain business description keywords")
                 return None
             
             return content
@@ -155,39 +228,54 @@ Extracted content:"""
             return None
     
     def _extract_sections_fallback(self, text: str) -> Dict[str, FilingSection]:
-        """Fallback method using basic text parsing when AI is unavailable"""
+        """Fallback method using improved text parsing when AI is unavailable"""
         
         sections = {}
         
-        # Simple keyword-based extraction
+        # More comprehensive keyword-based extraction patterns
         section_patterns = {
             'item1': [
                 r'item\s*1[\.\s]*business.*?(?=item\s*1a|item\s*2|$)',
                 r'business\s*overview.*?(?=risk\s*factors|item\s*2|$)',
+                r'business\s*description.*?(?=risk\s*factors|item\s*2|$)',
+                r'company\s*overview.*?(?=risk\s*factors|item\s*2|$)',
+                r'overview.*?(?=risk\s*factors|item\s*2|$)',
             ],
             'item1a': [
                 r'item\s*1a[\.\s]*risk\s*factors.*?(?=item\s*2|$)',
                 r'risk\s*factors.*?(?=item\s*2|$)',
+                r'item\s*1a.*?(?=item\s*2|$)',
+                r'risks.*?(?=item\s*2|$)',
+                r'uncertainties.*?(?=item\s*2|$)',
             ],
             'item7': [
                 r'item\s*7[\.\s]*management.*?(?=item\s*8|$)',
                 r"management's\s*discussion\s*and\s*analysis.*?(?=item\s*8|$)",
+                r'md&a.*?(?=item\s*8|$)',
+                r'management\s*discussion.*?(?=item\s*8|$)',
+                r'financial\s*discussion.*?(?=item\s*8|$)',
             ]
         }
         
         for section_id, patterns in section_patterns.items():
+            content_found = False
             for pattern in patterns:
                 match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
                 if match:
                     content = match.group(0).strip()
-                    if len(content.split()) >= 50:
+                    if len(content.split()) >= 50:  # Minimum meaningful content
                         sections[section_id] = FilingSection(
                             section_id=section_id,
                             title=self.target_sections[section_id]['title'],
                             content=content,
                             word_count=len(content.split())
                         )
+                        self.logger.info(f"Fallback extracted {section_id}: {len(content.split())} words")
+                        content_found = True
                         break
+            
+            if not content_found:
+                self.logger.warning(f"Fallback could not extract {section_id} - no patterns matched")
         
         self.logger.info(f"Fallback extracted {len(sections)} sections from filing")
         return sections
