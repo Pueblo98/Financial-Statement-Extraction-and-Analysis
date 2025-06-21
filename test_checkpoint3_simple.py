@@ -9,7 +9,11 @@ sys.path.append('src')
 
 from bs4 import BeautifulSoup
 import re
+from dotenv import load_dotenv
 from financialreader.narrative_agents import ResearchAgent, ExtractionAgent
+
+# Load environment variables
+load_dotenv()
 
 def extract_apple_sections_manually(html_content):
     """Manually extract sections from Apple 10-K based on our debug findings"""
@@ -89,7 +93,11 @@ def test_checkpoint3_simple():
     print("Testing AI-Powered Narrative Analysis with Manual Section Extraction\n")
     
     # Initialize AI agents
-    gemini_api_key = "AIzaSyCmUqFSaOPyhHO381Tbb8cqYSLLNZocmFk"
+    gemini_api_key = os.getenv('GEMINI_API_KEY')
+    if not gemini_api_key:
+        print("ERROR: GEMINI_API_KEY environment variable not set")
+        return False
+    
     research_agent = ResearchAgent(api_key=gemini_api_key)
     extraction_agent = ExtractionAgent(api_key=gemini_api_key)
     
