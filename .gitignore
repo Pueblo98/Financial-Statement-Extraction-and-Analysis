@@ -143,3 +143,6 @@ data/
 # OS
 .DS_Store
 Thumbs.db
+
+# Conda installer
+Miniconda3-latest-Linux-x86_64.sh

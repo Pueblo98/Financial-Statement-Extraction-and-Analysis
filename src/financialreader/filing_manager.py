@@ -10,8 +10,8 @@ from dataclasses import dataclass
 import logging
 from datetime import datetime
 
-from edgar_client import SECEdgarClient, CompanyLookup, Filing
-from filing_storage import FilingStorage, StoredFiling
+from .edgar_client import SECEdgarClient, CompanyLookup, Filing
+from .filing_storage import FilingStorage, StoredFiling
 
 @dataclass
 class FilingRetrievalResult:

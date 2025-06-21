@@ -10,8 +10,8 @@ from datetime import datetime, date
 import logging
 import numpy as np
 
-from edgar_client import SECEdgarClient
-from gaap_taxonomy import GAAP_MAPPER, StatementType
+from .edgar_client import SECEdgarClient
+from .gaap_taxonomy import GAAP_MAPPER, StatementType
 
 @dataclass
 class FinancialDataPoint:
