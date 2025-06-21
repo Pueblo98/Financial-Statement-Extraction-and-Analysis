@@ -46,10 +46,10 @@ class GAAPTaxonomyMapper:
         income_statement_tags = {
             # Revenue
             "revenue": GAAPTag(
-                tag="Revenues",
+                tag="RevenueFromContractWithCustomerExcludingAssessedTax",
                 statement_type=StatementType.INCOME_STATEMENT,
                 description="Total revenue/net sales",
-                alternative_tags=["RevenueFromContractWithCustomerExcludingAssessedTax", "SalesRevenueNet"]
+                alternative_tags=["Revenues", "SalesRevenueNet"]
             ),
             
             # Cost of Goods/Services Sold
