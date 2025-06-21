@@ -1,0 +1,18 @@
+[
+  {
+    "version_id": "v1_20250621_203551",
+    "created_at": "2025-06-21T20:35:51.368892",
+    "description": "Checkpoint 5 validation test",
+    "feature_count": 67,
+    "quality_score": 0.925,
+    "file_path": "exports/financial_dataset_20250621_203551.csv"
+  },
+  {
+    "version_id": "v2_20250621_203551",
+    "created_at": "2025-06-21T20:35:51.489301",
+    "description": "JSON format test",
+    "feature_count": 67,
+    "quality_score": 0.925,
+    "file_path": "exports/financial_dataset_20250621_203551.json"
+  }
+]

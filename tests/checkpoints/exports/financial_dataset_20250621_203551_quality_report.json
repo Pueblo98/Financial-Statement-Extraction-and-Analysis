@@ -1,0 +1,534 @@
+{
+  "overall_score": 0.925,
+  "generated_at": "2025-06-21T20:35:51.192596",
+  "quality_metrics": [
+    {
+      "name": "data_completeness",
+      "value": 0.5223880597014925,
+      "threshold": 0.8,
+      "status": "warning",
+      "description": "Overall data completeness percentage",
+      "recommendations": [
+        "Overall completeness is 52.2%, below 80.0% threshold",
+        "Focus on improving completeness for: current_assets, cash_and_equivalents, property_plant_equipment"
+      ]
+    },
+    {
+      "name": "data_consistency",
+      "value": 1.0,
+      "threshold": 0.95,
+      "status": "pass",
+      "description": "Cross-metric consistency validation",
+      "recommendations": []
+    },
+    {
+      "name": "outlier_percentage",
+      "value": 0,
+      "threshold": 5.0,
+      "status": "pass",
+      "description": "Percentage of potential outliers detected",
+      "recommendations": []
+    },
+    {
+      "name": "temporal_continuity",
+      "value": 1.0,
+      "threshold": 0.8,
+      "status": "pass",
+      "description": "Time series data continuity",
+      "recommendations": [
+        "Investigate extreme year-over-year changes"
+      ]
+    },
+    {
+      "name": "logical_constraints",
+      "value": 1.0,
+      "threshold": 0.95,
+      "status": "pass",
+      "description": "Financial metric logical constraint compliance",
+      "recommendations": []
+    }
+  ],
+  "completeness_analysis": {
+    "overall_completeness": 0.5223880597014925,
+    "column_completeness": {
+      "company_cik": 1.0,
+      "company_name": 1.0,
+      "fiscal_year": 1.0,
+      "period_end": 1.0,
+      "form_type": 1.0,
+      "data_quality_score": 1.0,
+      "current_assets": 0.4,
+      "shareholders_equity": 1.0,
+      "cash_and_equivalents": 0.4,
+      "property_plant_equipment": 0.4,
+      "total_assets": 0.4,
+      "gross_profit": 0.6,
+      "selling_general_administrative": 0.6,
+      "accounts_payable": 0.4,
+      "income_tax_expense": 0.6,
+      "stock_repurchases": 0.6,
+      "cost_of_goods_sold": 0.6,
+      "depreciation_amortization": 0.6,
+      "retained_earnings": 0.4,
+      "capital_expenditures": 0.6,
+      "earnings_per_share_basic": 0.6,
+      "earnings_per_share_diluted": 0.6,
+      "total_liabilities": 0.4,
+      "operating_cash_flow": 0.6,
+      "financing_cash_flow": 0.6,
+      "revenue": 0.6,
+      "investing_cash_flow": 0.6,
+      "inventory": 0.4,
+      "operating_income": 0.6,
+      "research_and_development": 0.6,
+      "common_shares_outstanding": 0.4,
+      "current_liabilities": 0.4,
+      "long_term_debt": 0.4,
+      "net_income": 0.6,
+      "accounts_receivable": 0.4,
+      "company_name_perf": 1.0,
+      "revenue_growth_yoy": 0.4,
+      "net_income_growth_yoy": 0.4,
+      "eps_growth_yoy": 0.4,
+      "revenue_cagr_3y": 0.2,
+      "revenue_cagr_5y": 0.0,
+      "gross_margin": 0.6,
+      "operating_margin": 0.6,
+      "net_profit_margin": 0.6,
+      "roe": 0.6,
+      "roa": 0.4,
+      "roic": 0.4,
+      "current_ratio": 0.4,
+      "quick_ratio": 0.4,
+      "cash_ratio": 0.4,
+      "debt_to_equity": 0.4,
+      "debt_to_assets": 0.4,
+      "interest_coverage": 0.0,
+      "free_cash_flow": 0.6,
+      "fcf_margin": 0.6,
+      "cash_conversion_ratio": 0.6,
+      "capex_intensity": 0.6,
+      "asset_turnover": 0.4,
+      "working_capital": 0.4,
+      "working_capital_turnover": 0.4,
+      "revenue_volatility_3y": 0.4,
+      "margin_momentum": 0.4,
+      "asset_efficiency_percentile": 0.4,
+      "revenue_3y_avg": 0.4,
+      "margin_lagged_1y": 0.4,
+      "growth_quality_score": 0.0,
+      "leverage_profitability_ratio": 0.4
+    },
+    "low_completeness_columns": [
+      "current_assets",
+      "cash_and_equivalents",
+      "property_plant_equipment",
+      "total_assets",
+      "gross_profit",
+      "selling_general_administrative",
+      "accounts_payable",
+      "income_tax_expense",
+      "stock_repurchases",
+      "cost_of_goods_sold",
+      "depreciation_amortization",
+      "retained_earnings",
+      "capital_expenditures",
+      "earnings_per_share_basic",
+      "earnings_per_share_diluted",
+      "total_liabilities",
+      "operating_cash_flow",
+      "financing_cash_flow",
+      "revenue",
+      "investing_cash_flow",
+      "inventory",
+      "operating_income",
+      "research_and_development",
+      "common_shares_outstanding",
+      "current_liabilities",
+      "long_term_debt",
+      "net_income",
+      "accounts_receivable",
+      "revenue_growth_yoy",
+      "net_income_growth_yoy",
+      "eps_growth_yoy",
+      "revenue_cagr_3y",
+      "revenue_cagr_5y",
+      "gross_margin",
+      "operating_margin",
+      "net_profit_margin",
+      "roe",
+      "roa",
+      "roic",
+      "current_ratio",
+      "quick_ratio",
+      "cash_ratio",
+      "debt_to_equity",
+      "debt_to_assets",
+      "interest_coverage",
+      "free_cash_flow",
+      "fcf_margin",
+      "cash_conversion_ratio",
+      "capex_intensity",
+      "asset_turnover",
+      "working_capital",
+      "working_capital_turnover",
+      "revenue_volatility_3y",
+      "margin_momentum",
+      "asset_efficiency_percentile",
+      "revenue_3y_avg",
+      "margin_lagged_1y",
+      "growth_quality_score",
+      "leverage_profitability_ratio"
+    ],
+    "missing_patterns": {
+      "current_assets": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "cash_and_equivalents": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "property_plant_equipment": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "total_assets": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "gross_profit": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "selling_general_administrative": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "accounts_payable": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "income_tax_expense": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "stock_repurchases": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "cost_of_goods_sold": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "depreciation_amortization": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "retained_earnings": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "capital_expenditures": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "earnings_per_share_basic": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "earnings_per_share_diluted": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "total_liabilities": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "operating_cash_flow": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "financing_cash_flow": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "revenue": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "investing_cash_flow": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "inventory": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "operating_income": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "research_and_development": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "common_shares_outstanding": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "current_liabilities": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "long_term_debt": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "net_income": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "accounts_receivable": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "revenue_growth_yoy": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "net_income_growth_yoy": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "eps_growth_yoy": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "revenue_cagr_3y": {
+        "missing_count": 4,
+        "missing_percentage": 80.0,
+        "consecutive_missing": 4
+      },
+      "revenue_cagr_5y": {
+        "missing_count": 5,
+        "missing_percentage": 100.0,
+        "consecutive_missing": 5
+      },
+      "gross_margin": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "operating_margin": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "net_profit_margin": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "roe": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "roa": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "roic": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "current_ratio": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "quick_ratio": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "cash_ratio": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "debt_to_equity": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "debt_to_assets": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "interest_coverage": {
+        "missing_count": 5,
+        "missing_percentage": 100.0,
+        "consecutive_missing": 5
+      },
+      "free_cash_flow": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "fcf_margin": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "cash_conversion_ratio": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "capex_intensity": {
+        "missing_count": 2,
+        "missing_percentage": 40.0,
+        "consecutive_missing": 2
+      },
+      "asset_turnover": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "working_capital": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "working_capital_turnover": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "revenue_volatility_3y": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "margin_momentum": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "asset_efficiency_percentile": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "revenue_3y_avg": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "margin_lagged_1y": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      },
+      "growth_quality_score": {
+        "missing_count": 5,
+        "missing_percentage": 100.0,
+        "consecutive_missing": 5
+      },
+      "leverage_profitability_ratio": {
+        "missing_count": 3,
+        "missing_percentage": 60.0,
+        "consecutive_missing": 3
+      }
+    },
+    "rows_with_missing": 5,
+    "completely_empty_rows": 0
+  },
+  "consistency_analysis": {
+    "overall_consistency": 1.0,
+    "consistency_checks": {
+      "balance_sheet_equation": 1.0,
+      "revenue_ocf_reasonableness": 1.0,
+      "margin_relationships": 1.0,
+      "roe_roa_relationship": 1.0
+    },
+    "failed_consistency_rules": []
+  },
+  "outlier_analysis": [],
+  "temporal_analysis": {
+    "has_temporal_data": true,
+    "continuity_score": 1.0,
+    "temporal_anomalies": [
+      {
+        "company": "0000320193",
+        "metric": "data_quality_score",
+        "extreme_changes": 1
+      },
+      {
+        "company": "0000320193",
+        "metric": "retained_earnings",
+        "extreme_changes": 1
+      },
+      {
+        "company": "0000320193",
+        "metric": "revenue_growth_yoy",
+        "extreme_changes": 1
+      },
+      {
+        "company": "0000320193",
+        "metric": "working_capital",
+        "extreme_changes": 1
+      },
+      {
+        "company": "0000320193",
+        "metric": "margin_momentum",
+        "extreme_changes": 1
+      }
+    ],
+    "years_covered": 5,
+    "companies_tracked": 1
+  },
+  "recommendations": [
+    "Investigate extreme year-over-year changes",
+    "Overall completeness is 52.2%, below 80.0% threshold",
+    "Focus on improving completeness for: current_assets, cash_and_equivalents, property_plant_equipment",
+    "Consider data quality monitoring dashboards",
+    "Implement automated data validation checks"
+  ]
+}
